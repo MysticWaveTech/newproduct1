@@ -125,3 +125,43 @@ document.getElementById('triggerBackflow').onclick=function(){rootNode.backflow(
 initToyobi('teleportation');
 animate();
 </script>
+
+<script>
+// --- Enforce Chiral Toyobi Globally ---
+
+function enforceChiral(rootNode, clockwise=true){
+  const direction = clockwise ? 1 : -1;
+
+  function chiralRecursion(node){
+    // Always bias micro-prompts with a directional phase
+    node.microPrompts = node.microPrompts.map(m => m + "-phase" + (node.branch==='good'? "+" : "-"));
+
+    // Inhibitors always alternate in a fixed pattern
+    node.inhibitors = node.inhibitors.map((i,index) => i + (index%2===0 ? "+" : "-"));
+
+    // Node angle always biased for chirality
+    node.angle += 0.05 * direction;
+
+    // Mark Try-nodes for visualization if needed
+    if(node.tryNode) node.radius += 2;
+
+    // Propagate recursively to children
+    node.children.forEach(c => chiralRecursion(c));
+  }
+
+  chiralRecursion(rootNode);
+}
+
+// Hook into Backflow button
+document.getElementById('triggerBackflow').onclick = function(){
+  enforceChiral(rootNode, true); // always clockwise, change false for counterclockwise
+  if(rootNode.playSound) rootNode.playSound();
+};
+
+// Hook into ability change/init to ensure initial propagation is chiral
+const originalInit = window.initToyobi;
+window.initToyobi = function(ability){
+  originalInit(ability);
+  enforceChiral(rootNode, true);
+};
+</script>
